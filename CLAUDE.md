@@ -24,6 +24,17 @@ Instructions for AI assistants contributing to `breakout-engine`.
 - No runtime server dependencies: no `fetch`, no external APIs, no telemetry. Persistence beyond `localStorage` requires a design discussion.
 - Prefer reuse and small composable functions over duplication. Justify abstractions only when the third call site appears.
 
+## AI-Assisted Contributions
+
+Commits authored with AI assistance must add a `Co-Authored-By:` trailer
+identifying the model used, for transparency:
+
+    Co-Authored-By: <model name and version> <noreply@anthropic.com>
+
+Fill in the model name and version current at authorship time. Do not
+hard-code a specific version anywhere else in the repository — it goes
+stale.
+
 ## Development Commands
 
 | Task           | Command                   |
