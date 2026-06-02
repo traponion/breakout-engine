@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
+import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
@@ -21,10 +22,8 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
-      '@eslint-community/eslint-comments/no-use': [
-        'error',
-        { allow: [] },
-      ],
+      '@eslint-community/eslint-comments/no-use': ['error', { allow: [] }],
     },
   },
+  prettier,
 );
