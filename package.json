@@ -1,0 +1,16 @@
+{
+  "name": "breakout-engine",
+  "version": "0.0.1",
+  "description": "A small, dependency-light HTML5 Canvas breakout game engine with customizable assets",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/traponion/breakout-engine.git"
+  },
+  "scripts": {}
+}
