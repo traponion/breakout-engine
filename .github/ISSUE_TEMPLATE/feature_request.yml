@@ -1,0 +1,46 @@
+name: Feature / change
+description: Propose an engine change with its goal, rationale, and acceptance criteria
+title: 'feat: '
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every non-trivial change starts here. Fill in the goal, **why**, and
+        verifiable acceptance criteria — this issue becomes the contract the PR
+        closes with `Closes #<n>`. See `CONTRIBUTING.md` for the workflow.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One or two sentences — what should be true once this is done?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: >-
+        The motivation, plus any decisions or constraints behind it. Lasting
+        architectural rationale should also graduate into DESIGN.md.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist of verifiable conditions — commands to run or observable behavior.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: >-
+            This is an engine capability, not a request to restyle the bundled
+            sample assets (asset customization belongs in a fork — see CONTRIBUTING.md).
+          required: false

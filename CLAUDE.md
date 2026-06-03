@@ -58,6 +58,8 @@ Tests live next to source files as `*.test.ts`. Vitest auto-discovers. Prefer sm
 
 See `CONTRIBUTING.md` for branch naming, PR template usage, and main-branch protection setup. The repository policy is PR-only — direct pushes to `main` are blocked.
 
+Changes are **issue-driven**: open an issue (Goal / Why / Acceptance Criteria) before branching, and close it from the PR with `Closes #<n>`. The mechanics live in `CONTRIBUTING.md`. The reason it is mandatory — including the _Why_ field — is that this repo is public and AI-assisted: the issue is the durable, shared record of _why_ a change exists, surviving an agent's per-session memory loss in a way a commit or local note does not. Lasting architectural rationale graduates from the issue into `DESIGN.md`.
+
 ## Architecture
 
 See `DESIGN.md` for the layered structure (`core` / `render` / `audio` / `config` / `i18n`), runtime extension points, the server-zero principle, and asset naming conventions.
