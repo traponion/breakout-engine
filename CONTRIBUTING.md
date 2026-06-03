@@ -20,7 +20,6 @@ npm run lint
 npm run format:check
 npm run test
 npm run build
-npm run check:codenames
 ```
 
 CI runs the same steps. All must pass before a PR can merge.

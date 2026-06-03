@@ -15,3 +15,25 @@ body {
 main {
   max-width: 40rem;
 }
+
+.breakout-stage {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.breakout-stage canvas {
+  width: min(100%, 320px);
+  height: auto;
+  aspect-ratio: 320 / 480;
+  background: #1a1a2e;
+  border-radius: 8px;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.breakout-hint {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  text-align: center;
+}
