@@ -25,6 +25,28 @@ npm run check:codenames
 
 CI runs the same steps. All must pass before a PR can merge.
 
+## Issues drive changes
+
+This repo uses a lightweight, **issue-driven** GitHub flow — plain GitHub Flow
+with one rule added: every non-trivial change starts as an issue.
+
+1. **Open an issue first**, using the _Feature / change_ form. It requires three
+   fields: a **Goal**, the **Why** (motivation and any decisions behind it), and
+   verifiable **Acceptance criteria** (a checklist). This issue is the contract.
+2. **One issue → one branch** (see [Branching](#branching)).
+3. **One branch → one PR**, whose description links the issue with `Closes #<n>`.
+4. CI must be green and `main` is protected; merging closes the issue.
+
+Why an issue, and why the _Why_ field is mandatory: this repo is public and
+developed with AI assistance. An issue is the durable, shared record of _why_ a
+change exists — it outlives an agent's per-session memory and is legible to
+anyone reading the repo, in a way a local note is not. Rationale that turns out
+to be lasting (architectural decisions) should graduate from the issue into
+`DESIGN.md` so the context an agent reads every session carries the _why_.
+
+Trivial, self-evident changes (typos, formatting, a one-line comment) may skip
+the issue. When in doubt, open one.
+
 ## Branching
 
 `main` is protected. All changes go through a pull request from a feature
