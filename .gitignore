@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Local AI working directory (private plans, agent scratch — not part of the repo)
 .claude/
+
+# Private, machine-local project context for AI assistants (never committed)
+CLAUDE.local.md
