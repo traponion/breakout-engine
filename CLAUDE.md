@@ -20,7 +20,7 @@ Instructions for AI assistants contributing to `breakout-engine`.
 - `any` is forbidden. Use precise types or `unknown` with narrowing.
 - `eslint-disable` annotations are forbidden. Fix the root cause, not the symptom.
 - Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`).
-- No internal codenames or private references in tracked files. CI greps for forbidden strings on every push.
+- Keep engine code character-neutral and data-driven. Default content (mascot comments, face images, reward art) ships as replaceable data under `src/i18n/`, `config.js`, and `assets/` — not hard-coded into `core`/`render`/`config` logic.
 - No runtime server dependencies: no `fetch`, no external APIs, no telemetry. Persistence beyond `localStorage` requires a design discussion.
 - Prefer reuse and small composable functions over duplication. Justify abstractions only when the third call site appears.
 
@@ -37,18 +37,17 @@ stale.
 
 ## Development Commands
 
-| Task           | Command                   |
-| -------------- | ------------------------- |
-| Install        | `npm ci`                  |
-| Dev server     | `npm run dev`             |
-| Build          | `npm run build`           |
-| Type check     | `npm run typecheck`       |
-| Lint           | `npm run lint`            |
-| Format         | `npm run format`          |
-| Test           | `npm run test`            |
-| Codename guard | `npm run check:codenames` |
+| Task       | Command             |
+| ---------- | ------------------- |
+| Install    | `npm ci`            |
+| Dev server | `npm run dev`       |
+| Build      | `npm run build`     |
+| Type check | `npm run typecheck` |
+| Lint       | `npm run lint`      |
+| Format     | `npm run format`    |
+| Test       | `npm run test`      |
 
-CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and `check:codenames`. All must be green before a PR can merge.
+CI runs `typecheck`, `lint`, `format:check`, `test`, and `build`. All must be green before a PR can merge.
 
 ## Testing
 

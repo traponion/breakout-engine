@@ -13,14 +13,16 @@
   <body>
     <main>
       <h1>Breakout Engine</h1>
-      <p>A small, dependency-light HTML5 Canvas breakout game engine with customizable assets.</p>
-      <p>Phase 1 scaffolding — the engine itself is not yet implemented.</p>
-      <p>
-        See the
-        <a href="https://github.com/traponion/breakout-engine">repository on GitHub</a>
-        for source and customization documentation.
+      <div class="breakout-stage">
+        <canvas data-breakout-canvas width="320" height="480" aria-label="Breakout game"></canvas>
+      </div>
+      <p class="breakout-hint">
+        Edit <code>config.js</code> to customize difficulty, language, mascot comments, and rewards.
+        Replace files under <code>assets/</code> to swap the mascot and reward art.
       </p>
     </main>
+    <!-- Runtime config: plain JS, no build step. Loaded before the bundle. -->
+    <script src="./config.js"></script>
     <script type="module" src="./dist/bundle.js"></script>
   </body>
 </html>
