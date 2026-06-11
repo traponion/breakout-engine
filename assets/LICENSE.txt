@@ -1,8 +1,8 @@
 Sample Asset Notice
 ===================
 
-The character images, dialogue strings, and other media bundled under
-`assets/` are sample materials. They ship with this repository so that the
+The character images, dialogue strings, sound effects, and other media
+bundled under `assets/` are sample materials. They ship with this repository so that the
 engine has a runnable default experience, and so that contributors have
 something concrete to test rendering and audio against.
 
@@ -15,7 +15,8 @@ Customization is the intended use:
 
   Not OK: Redistribute these sample files as standalone asset packs.
   Not OK: Ship a derivative product that uses these sample files unchanged
-          as the default mascot, reward visuals, or voice of that product.
+          as the default mascot, reward visuals, sound set, or voice of
+          that product.
 
 In short: the engine is yours to use freely. The bundled samples are a
 demo, not a deliverable.
