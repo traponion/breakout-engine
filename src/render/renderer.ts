@@ -67,6 +67,7 @@ export interface RenderContext {
   rewardImage: HTMLImageElement | null;
   dangerLevel: number;
   muted: boolean;
+  seVolume: number; // 0–100, shown by the ready-screen slider
   trackTitleText: string | null;
   trackTitleTimer: number;
   levelUpText: string | null;
@@ -950,6 +951,9 @@ function drawReadyScreen(rctx: RenderContext): void {
     280,
   );
 
+  // SE volume slider (drag or click the track; value persists per browser)
+  drawVolumeSlider(rctx);
+
   // Difficulty buttons (clicking starts the game)
   drawButton(ctx, easyBtn, labels.easy, '#22c55e', '#fff');
   drawButton(ctx, hardBtn, labels.hard, '#ef4444', '#fff');
@@ -1052,6 +1056,37 @@ function drawReadyScreen(rctx: RenderContext): void {
     miniCenter - miniGraceHalf - 15,
     miniPaddleY + 6,
   );
+}
+
+function drawVolumeSlider(rctx: RenderContext): void {
+  const { ctx, seVolume } = rctx;
+  const { volumeTrack } = UI.ready;
+  const trackCenterY = volumeTrack.y + volumeTrack.h / 2;
+
+  // Label
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('SE', volumeTrack.x - 12, trackCenterY + 3);
+
+  // Track and filled portion
+  ctx.fillStyle = '#333';
+  ctx.fillRect(volumeTrack.x, volumeTrack.y, volumeTrack.w, volumeTrack.h);
+  ctx.fillStyle = '#7fdbca';
+  ctx.fillRect(volumeTrack.x, volumeTrack.y, (volumeTrack.w * seVolume) / 100, volumeTrack.h);
+
+  // Knob
+  const knobX = volumeTrack.x + (volumeTrack.w * seVolume) / 100;
+  ctx.beginPath();
+  ctx.arc(knobX, trackCenterY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#e5e7eb';
+  ctx.fill();
+
+  // Numeric value
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(String(seVolume), volumeTrack.x + volumeTrack.w + 14, trackCenterY + 3);
 }
 
 function drawGameOverScreen(rctx: RenderContext): void {

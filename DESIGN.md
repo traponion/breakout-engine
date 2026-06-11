@@ -16,7 +16,7 @@ src/
 ├── main.ts     # bootstrap: load config → start engine
 ├── core/       # game state, physics, collisions, scoring
 ├── render/     # canvas drawing, animations, effects
-├── audio/      # sound effects, MML or Web Audio playback
+├── audio/      # SE playback via pooled audio elements (assets/sounds/)
 ├── config/     # config loading, schema validation, defaults
 └── i18n/       # text and dialogue catalogs
 ```
@@ -66,7 +66,17 @@ Where `${NNN}` is a zero-padded sequence number. Reward unlock thresholds are de
 
 ### Sounds
 
-Sound effects are synthesized at runtime via the Web Audio API rather than loaded as audio files, to keep the bundle small. Background music uses MML or a similar text-based format that compiles in the build step.
+```
+assets/sounds/se-${name}.mp3
+```
+
+Sound effects are pre-rendered audio files played through small pools of `HTMLAudioElement` instances (rotated per play so rapid repeats overlap). Media elements load relative paths under both `file://` and http(s) — the same mechanism images use — so playback needs no `fetch` and works fully offline. Replace a file in place (same name), or point a `config.js` `sounds.<name>` entry at a different path; neither requires a rebuild.
+
+The SE names are the keys of `SE_NAMES` in `src/audio/` (e.g. `paddleHit`, `blockBreak`, `gameOver`). Bundled samples are generic 8-bit chiptune renders.
+
+Playback unlocks on the first user gesture (browser autoplay policy); no sound is attempted before it. Known iOS Safari degradation: the element `volume` property is user-controlled there, so the in-game SE volume slider has no effect on iOS — device volume applies and `muted` still works. This is an accepted limitation of the secondary mobile demo surface, not a defect.
+
+Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm-*.mp3` streamed by a media element with `loop`.
 
 ### Constraints
 
@@ -98,5 +108,6 @@ Regressions against these budgets are caught by the build step (size) or by manu
 | Difficulty, audio, language | `config.js`                         | Edit the file, reload the page.                  |
 | Mascot face                 | `assets/mascot/face-${state}.webp`  | Replace files following the convention.          |
 | Reward images               | `assets/rewards/reward-${NNN}.webp` | Replace files; update thresholds in `config.js`. |
+| Sound effects               | `assets/sounds/se-${name}.mp3`      | Replace files; or override paths in `config.js`. |
 | New language                | `src/i18n/`                         | Add a new catalog matching the `en` shape.       |
 | New visual effect           | `src/render/`                       | Add a renderer module and wire it in.            |

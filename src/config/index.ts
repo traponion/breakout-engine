@@ -7,6 +7,8 @@
  * console warning — no silent fallback for typed fields.
  */
 
+import { SE_NAMES, defaultSEPath } from '../audio';
+import type { BreakoutSEType } from '../audio';
 import type { DifficultyLevel } from '../core/entities';
 import type { Lang } from '../i18n/comments';
 
@@ -22,16 +24,26 @@ export interface RewardThreshold {
   src: string;
 }
 
+/** Per-SE audio file paths. Defaults follow the assets/sounds convention. */
+export type SoundPaths = Record<BreakoutSEType, string>;
+
 export interface BreakoutConfig {
   /** Initial difficulty offered on the ready screen. */
   difficulty: DifficultyLevel;
-  /** 0–100. Reserved: audio is a silent stub in this build, so volume has no effect yet. */
+  /** 0–100. Reserved: BGM ships in a follow-up, so this has no effect yet. */
   bgmVolume: number;
-  /** 0–100. Reserved: see bgmVolume. */
+  /** 0–100. Initial SE volume; the in-game slider overrides and persists it. */
   seVolume: number;
   lang: Lang;
   showMascotComments: boolean;
   rewards: RewardThreshold[];
+  sounds: SoundPaths;
+}
+
+function defaultSoundPaths(): SoundPaths {
+  const paths: Partial<SoundPaths> = {};
+  for (const name of SE_NAMES) paths[name] = defaultSEPath(name);
+  return paths as SoundPaths;
 }
 
 export const DEFAULT_CONFIG: BreakoutConfig = {
@@ -46,6 +58,7 @@ export const DEFAULT_CONFIG: BreakoutConfig = {
     { minScore: 6001, src: 'assets/rewards/reward-003.webp' },
     { minScore: 9001, src: 'assets/rewards/reward-004.webp' },
   ],
+  sounds: defaultSoundPaths(),
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -108,12 +121,41 @@ function asRewards(value: unknown): RewardThreshold[] {
   return rewards;
 }
 
+function isSEName(value: string): value is BreakoutSEType {
+  return (SE_NAMES as readonly string[]).includes(value);
+}
+
+function asSounds(value: unknown): SoundPaths {
+  const sounds = defaultSoundPaths();
+  if (value === undefined) return sounds;
+  if (!isRecord(value)) {
+    warn('sounds');
+    return sounds;
+  }
+  for (const [key, path] of Object.entries(value)) {
+    if (!isSEName(key)) {
+      console.warn(`[breakout] config.sounds.${key} is not a known sound effect; ignoring`);
+      continue;
+    }
+    if (typeof path !== 'string' || path === '') {
+      warn(`sounds.${key}`);
+      continue;
+    }
+    sounds[key] = path;
+  }
+  return sounds;
+}
+
+function cloneDefaults(): BreakoutConfig {
+  return { ...DEFAULT_CONFIG, rewards: cloneDefaultRewards(), sounds: defaultSoundPaths() };
+}
+
 export function loadConfig(): BreakoutConfig {
   const raw = typeof window !== 'undefined' ? window.BREAKOUT_CONFIG : undefined;
-  if (raw === undefined) return { ...DEFAULT_CONFIG, rewards: cloneDefaultRewards() };
+  if (raw === undefined) return cloneDefaults();
   if (!isRecord(raw)) {
     console.warn('[breakout] BREAKOUT_CONFIG is not an object; using defaults');
-    return { ...DEFAULT_CONFIG, rewards: cloneDefaultRewards() };
+    return cloneDefaults();
   }
   return {
     difficulty: asDifficulty(raw.difficulty),
@@ -122,5 +164,6 @@ export function loadConfig(): BreakoutConfig {
     lang: asLang(raw.lang),
     showMascotComments: asBool(raw.showMascotComments, DEFAULT_CONFIG.showMascotComments),
     rewards: asRewards(raw.rewards),
+    sounds: asSounds(raw.sounds),
   };
 }
