@@ -1,65 +1,48 @@
 /**
- * Audio manager — sound-effect playback via pooled audio elements.
+ * Audio manager — SE volume/mute state plus a playback backend.
  *
- * SE are replaceable files under `assets/sounds/` (see DESIGN.md). Media
- * elements load local relative paths under both `file://` and http(s) — the
- * same mechanism `<img>` relies on — so playback needs no `fetch` and the
- * server-zero rule stays literal. Each SE owns a small pool of elements
- * rotated per play, so rapid repeats overlap instead of cutting each other
- * off.
+ * SE are replaceable files under `assets/sounds/` (see DESIGN.md). The
+ * backend is picked at boot by URL scheme: Web Audio buffers over http(s)
+ * (low latency, smooth on iOS), element pools under `file://` (media
+ * elements load local paths where fetch is blocked). Both follow the same
+ * config/asset contract, so replace-in-place works identically everywhere.
  *
  * BGM methods are stubs: background music ships in a follow-up as
- * `assets/sounds/bgm-*.mp3` through this same element mechanism.
+ * `assets/sounds/bgm-*.mp3` through this same mechanism.
  */
 
+import { BufferSEBackend } from './buffer-backend';
+import { ElementSEBackend } from './element-backend';
+import { SE_NAMES, defaultSEPath } from './types';
+import type { BreakoutSEType, SEBackend } from './types';
 import type { DifficultyLevel } from '../core/entities';
 
-export const SE_NAMES = [
-  'paddleHit',
-  'powerShot',
-  'blockHit',
-  'blockBreak',
-  'blockBreakMax',
-  'damageLight',
-  'damageMid',
-  'damageHeavy',
-  'death',
-  'gameOver',
-  'enemyFire',
-  'spreadFire',
-  'reflect',
-  'laserWarn',
-  'laserFire',
-  'homingPip',
-  'homingLock',
-  'wallBounce',
-  'rain',
-  'diffUp',
-  'newRow',
-  'hlTrack',
-  'hlCharge',
-  'hlFire',
-] as const;
+export { SE_NAMES, defaultSEPath } from './types';
+export type { BreakoutSEType, SEBackend } from './types';
 
-export type BreakoutSEType = (typeof SE_NAMES)[number];
-
-/** Conventional path of a bundled SE file (see DESIGN.md asset conventions). */
-export function defaultSEPath(name: BreakoutSEType): string {
-  return `assets/sounds/se-${name}.mp3`;
+/** Backend choice by URL scheme: fetch+decode needs http(s); file:// gets elements. */
+export function selectBackendKind(protocol: string | null): 'buffer' | 'element' {
+  return protocol === 'http:' || protocol === 'https:' ? 'buffer' : 'element';
 }
 
-/**
- * The slice of HTMLAudioElement the manager drives. Production uses real
- * audio elements via the default factory; tests inject fakes so the manager
- * stays testable without a DOM.
- */
-export interface PooledAudio {
-  volume: number;
-  muted: boolean;
-  currentTime: number;
-  playbackRate: number;
-  play(): Promise<void>;
-  pause(): void;
+function resolvePaths(
+  sounds?: Partial<Record<BreakoutSEType, string>>,
+): Record<BreakoutSEType, string> {
+  const paths: Partial<Record<BreakoutSEType, string>> = {};
+  for (const name of SE_NAMES) paths[name] = sounds?.[name] ?? defaultSEPath(name);
+  return paths as Record<BreakoutSEType, string>;
+}
+
+function createDefaultBackend(paths: Record<BreakoutSEType, string>): SEBackend {
+  const protocol = typeof location !== 'undefined' ? location.protocol : null;
+  if (
+    selectBackendKind(protocol) === 'buffer' &&
+    typeof fetch !== 'undefined' &&
+    typeof AudioContext !== 'undefined'
+  ) {
+    return new BufferSEBackend(paths);
+  }
+  return new ElementSEBackend(paths);
 }
 
 export interface AudioManagerOptions {
@@ -67,13 +50,9 @@ export interface AudioManagerOptions {
   seVolume?: number;
   /** Per-SE file paths; missing entries fall back to the convention. */
   sounds?: Partial<Record<BreakoutSEType, string>>;
-  /** Element factory override for tests / non-DOM environments. */
-  createAudio?: (src: string) => PooledAudio;
+  /** Backend override for tests. */
+  backend?: SEBackend;
 }
-
-// Elements per SE: enough for audible overlap on the fastest repeats
-// (paddle spam, multi-brick combos) without piling up media elements.
-export const SE_POOL_SIZE = 4;
 
 const STORAGE_KEY_SE = 'breakout-se-volume';
 const STORAGE_KEY_MUTE = 'breakout-muted';
@@ -115,98 +94,32 @@ function store(key: string, value: string): void {
   }
 }
 
-/** Real-element factory; null where media elements don't exist (unit tests). */
-function defaultAudioFactory(): ((src: string) => PooledAudio) | null {
-  if (typeof Audio === 'undefined') return null;
-  return (src: string): PooledAudio => {
-    const el = new Audio(src);
-    el.preload = 'auto';
-    // Match the original sound design: playbackRate shifts pitch (HP/combo
-    // pitch variations), like an AudioBufferSourceNode would.
-    el.preservesPitch = false;
-    el.addEventListener(
-      'error',
-      () => {
-        console.warn(`[breakout] failed to load sound: ${src}`);
-      },
-      { once: true },
-    );
-    return el;
-  };
-}
-
-interface SEPool {
-  elements: PooledAudio[];
-  next: number;
-}
-
 export class BreakoutAudioManager {
-  private readonly pools = new Map<BreakoutSEType, SEPool>();
+  private readonly backend: SEBackend;
   private seVolume: number;
   private muted: boolean;
-  private unlocked = false;
 
   constructor(options: AudioManagerOptions = {}) {
     this.seVolume = clampVolume(
       loadStoredInt(STORAGE_KEY_SE) ?? options.seVolume ?? DEFAULT_SE_VOLUME,
     );
     this.muted = loadStoredBool(STORAGE_KEY_MUTE) ?? false;
-
-    const createAudio = options.createAudio ?? defaultAudioFactory();
-    if (!createAudio) return; // non-DOM environment — manager stays silent
-
-    for (const name of SE_NAMES) {
-      const src = options.sounds?.[name] ?? defaultSEPath(name);
-      const elements: PooledAudio[] = [];
-      for (let i = 0; i < SE_POOL_SIZE; i++) {
-        elements.push(createAudio(src));
-      }
-      this.pools.set(name, { elements, next: 0 });
-    }
+    this.backend = options.backend ?? createDefaultBackend(resolvePaths(options.sounds));
   }
 
-  /**
-   * Unlock playback. Must be called from a user gesture handler. On iOS an
-   * element may only play after it has started once inside a gesture, so
-   * every pooled element gets a muted play/pause warm-up. Idempotent.
-   */
+  /** Forwarded to the backend; call from user-gesture handlers. Retry-safe. */
   unlock(): void {
-    if (this.unlocked) return;
-    this.unlocked = true;
-    for (const pool of this.pools.values()) {
-      for (const el of pool.elements) {
-        el.muted = true;
-        el.play()
-          .then(() => {
-            el.pause();
-            el.currentTime = 0;
-          })
-          .catch(() => {
-            // Autoplay rejected or file missing — playSE retries per play
-          });
-      }
-    }
+    this.backend.unlock();
   }
 
-  /** Gates game start. Elements stream on demand, so the gesture is the only gate. */
+  /** Gates game start. */
   isReady(): boolean {
-    return this.unlocked;
+    return this.backend.isReady();
   }
 
   playSE(type: BreakoutSEType, playbackRate = 1): void {
-    if (!this.unlocked || this.muted || this.seVolume === 0) return;
-    const pool = this.pools.get(type);
-    if (!pool) return;
-    const el = pool.elements[pool.next];
-    pool.next = (pool.next + 1) % pool.elements.length;
-    if (!el) return;
-    el.muted = false;
-    el.volume = this.seVolume / 100;
-    el.playbackRate = playbackRate;
-    el.currentTime = 0;
-    el.play().catch(() => {
-      // Playback rejected (missing file, codec, policy) — skip this SE
-    });
+    if (this.muted || this.seVolume === 0) return;
+    this.backend.play(type, playbackRate, this.seVolume / 100);
   }
 
   playBGM(difficultyLevel?: DifficultyLevel): string | null {
