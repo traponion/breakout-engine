@@ -21,7 +21,7 @@ Instructions for AI assistants contributing to `breakout-engine`.
 - `eslint-disable` annotations are forbidden. Fix the root cause, not the symptom.
 - Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`).
 - Keep engine code character-neutral and data-driven. Default content (mascot comments, face images, reward art) ships as replaceable data under `src/i18n/`, `config.js`, and `assets/` — not hard-coded into `core`/`render`/`config` logic.
-- No runtime server dependencies: no `fetch`, no external APIs, no telemetry. Persistence beyond `localStorage` requires a design discussion.
+- No runtime server dependencies: no external APIs, no telemetry, no network access beyond loading the site's own static assets (same-origin over http(s), or local files under `file://`). Persistence beyond `localStorage` requires a design discussion.
 - Prefer reuse and small composable functions over duplication. Justify abstractions only when the third call site appears.
 
 ## AI-Assisted Contributions

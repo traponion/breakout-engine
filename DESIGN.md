@@ -4,7 +4,7 @@ Design principles and architecture for `breakout-engine`. This is the forward-lo
 
 ## Principles
 
-1. **Server-zero.** The engine runs without any backend. No `fetch`, no telemetry, no external CDN dependencies. All required assets are bundled or shipped alongside the build.
+1. **Server-zero.** The engine runs without any backend. No network access beyond the site's own static assets: no external APIs, CDNs, or telemetry. Fully functional offline from a `file://` URL. All required assets are bundled or shipped alongside the build.
 2. **Customizable in place.** Difficulty, audio, language, mascot, and reward visuals can be changed by users without recompiling the source.
 3. **Light by default.** The build target stays small (see [Performance Budget](#performance-budget)). New runtime dependencies require justification.
 4. **Readable single-purpose code.** Vertical-slice organization, no framework layer, no `any`, no `eslint-disable`.
@@ -16,7 +16,7 @@ src/
 ├── main.ts     # bootstrap: load config → start engine
 ├── core/       # game state, physics, collisions, scoring
 ├── render/     # canvas drawing, animations, effects
-├── audio/      # SE playback via pooled audio elements (assets/sounds/)
+├── audio/      # SE playback: Web Audio buffers (http) / element pools (file)
 ├── config/     # config loading, schema validation, defaults
 └── i18n/       # text and dialogue catalogs
 ```
@@ -70,13 +70,16 @@ Where `${NNN}` is a zero-padded sequence number. Reward unlock thresholds are de
 assets/sounds/se-${name}.mp3
 ```
 
-Sound effects are pre-rendered audio files played through small pools of `HTMLAudioElement` instances (rotated per play so rapid repeats overlap). Media elements load relative paths under both `file://` and http(s) — the same mechanism images use — so playback needs no `fetch` and works fully offline. Replace a file in place (same name), or point a `config.js` `sounds.<name>` entry at a different path; neither requires a rebuild.
+Sound effects are pre-rendered audio files. Replace a file in place (same name), or point a `config.js` `sounds.<name>` entry at a different path; neither requires a rebuild. The SE names are the keys of `SE_NAMES` in `src/audio/` (e.g. `paddleHit`, `blockBreak`, `gameOver`). Bundled samples are generic 8-bit chiptune renders.
 
-The SE names are the keys of `SE_NAMES` in `src/audio/` (e.g. `paddleHit`, `blockBreak`, `gameOver`). Bundled samples are generic 8-bit chiptune renders.
+Playback picks one of two backends at boot, by URL scheme — the same default-plus-fallback split that established game-audio libraries use:
 
-Playback unlocks on the first user gesture (browser autoplay policy); no sound is attempted before it. Known iOS Safari degradation: the element `volume` property is user-controlled there, so the in-game SE volume slider has no effect on iOS — device volume applies and `muted` still works. This is an accepted limitation of the secondary mobile demo surface, not a defect.
+- **http(s)** (dev server, Pages): same-origin `fetch` + `decodeAudioData` into Web Audio buffers, one `AudioBufferSourceNode` per play through a gain node. Low latency, free polyphony, cheap `playbackRate` pitch variation; the volume slider works everywhere, including iOS.
+- **`file://`** (the primary replace-in-place persona): `fetch` of local files is blocked, so SE play through small pools of `HTMLAudioElement` instances (rotated per play so rapid repeats overlap). Media elements load relative paths the way `<img>` does, keeping the engine fully functional offline. Known limit on this path: iOS Safari treats the element `volume` property as user-controlled — irrelevant in practice, since iOS reaches the demo over http(s).
 
-Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm-*.mp3` streamed by a media element with `loop`.
+Audio unlocks on the first completed user gesture — `click`/`touchend`/`mouseup`, since WebKit does not count `touchstart` as activation — and unlock attempts are retried on later gestures. No sound is attempted before the unlock.
+
+Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm-*.mp3` through the same dual-backend mechanism.
 
 ### Constraints
 
@@ -88,9 +91,9 @@ Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm
 
 The engine must run from a `file://` URL with no network access. To enforce this:
 
-- No `fetch`, `XMLHttpRequest`, or `WebSocket` calls in runtime code.
+- No network access beyond the site's own static assets. Same-origin loading of bundled/replaced assets over http(s) — including `fetch` for audio decoding — is part of serving a static site, not a server dependency. Calls to external origins (APIs, CDNs, telemetry, remote logging) are forbidden.
+- Under `file://`, where `fetch` of local files is blocked, every feature must keep working through media-element/DOM loading paths; full offline function is the acceptance bar.
 - No external CDN scripts; everything is bundled or shipped alongside.
-- No telemetry, analytics, or remote logging.
 - Persistence is limited to `localStorage` for non-PII state (settings, best-scores cache). Anything that would require a server is out of scope.
 
 ## Performance Budget

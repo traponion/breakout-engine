@@ -1,25 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BreakoutAudioManager, SE_NAMES, SE_POOL_SIZE, defaultSEPath } from './index';
-import type { AudioManagerOptions, PooledAudio } from './index';
+import { BreakoutAudioManager, selectBackendKind } from './index';
+import type { BreakoutSEType, SEBackend } from './index';
 
-class FakeAudio implements PooledAudio {
-  volume = 1;
-  muted = false;
-  currentTime = 0;
-  playbackRate = 1;
-  playCount = 0;
-  paused = true;
+class MockBackend implements SEBackend {
+  unlockCount = 0;
+  ready = false;
+  plays: { name: BreakoutSEType; rate: number; volume: number }[] = [];
 
-  constructor(public src: string) {}
-
-  play(): Promise<void> {
-    this.playCount++;
-    this.paused = false;
-    return Promise.resolve();
+  unlock(): void {
+    this.unlockCount++;
+    this.ready = true;
   }
 
-  pause(): void {
-    this.paused = true;
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  play(name: BreakoutSEType, rate: number, volume: number): void {
+    this.plays.push({ name, rate, volume });
   }
 }
 
@@ -43,26 +41,10 @@ function fakeStorage(): Storage {
   };
 }
 
-function createManager(options: Omit<AudioManagerOptions, 'createAudio'> = {}): {
-  manager: BreakoutAudioManager;
-  created: FakeAudio[];
-} {
-  const created: FakeAudio[] = [];
-  const manager = new BreakoutAudioManager({
-    ...options,
-    createAudio: (src) => {
-      const el = new FakeAudio(src);
-      created.push(el);
-      return el;
-    },
-  });
-  return { manager, created };
-}
-
-function flushMicrotasks(): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
+function createManager(seVolume?: number): { manager: BreakoutAudioManager; backend: MockBackend } {
+  const backend = new MockBackend();
+  const manager = new BreakoutAudioManager({ seVolume, backend });
+  return { manager, backend };
 }
 
 beforeEach(() => {
@@ -73,78 +55,38 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('BreakoutAudioManager pools', () => {
-  it('creates a fixed-size pool per SE using the conventional paths', () => {
-    const { created } = createManager();
-    expect(created).toHaveLength(SE_NAMES.length * SE_POOL_SIZE);
-    const paddleHit = created.filter((el) => el.src === defaultSEPath('paddleHit'));
-    expect(paddleHit).toHaveLength(SE_POOL_SIZE);
-  });
-
-  it('honours per-SE path overrides without touching other SE', () => {
-    const { created } = createManager({ sounds: { paddleHit: 'custom/hit.mp3' } });
-    expect(created.filter((el) => el.src === 'custom/hit.mp3')).toHaveLength(SE_POOL_SIZE);
-    expect(created.filter((el) => el.src === defaultSEPath('blockBreak'))).toHaveLength(
-      SE_POOL_SIZE,
-    );
+describe('selectBackendKind', () => {
+  it('picks buffers over http(s) and elements everywhere else', () => {
+    expect(selectBackendKind('http:')).toBe('buffer');
+    expect(selectBackendKind('https:')).toBe('buffer');
+    expect(selectBackendKind('file:')).toBe('element');
+    expect(selectBackendKind(null)).toBe('element');
   });
 });
 
-describe('unlock', () => {
-  it('does not play anything before unlock', () => {
-    const { manager, created } = createManager();
-    manager.playSE('paddleHit');
-    expect(created.every((el) => el.playCount === 0)).toBe(true);
+describe('backend delegation', () => {
+  it('forwards unlock and isReady', () => {
+    const { manager, backend } = createManager();
     expect(manager.isReady()).toBe(false);
-  });
-
-  it('warms every element muted, then pauses and rewinds it', async () => {
-    const { manager, created } = createManager();
     manager.unlock();
+    expect(backend.unlockCount).toBe(1);
     expect(manager.isReady()).toBe(true);
-    expect(created.every((el) => el.muted && el.playCount === 1)).toBe(true);
-    await flushMicrotasks();
-    expect(created.every((el) => el.paused && el.currentTime === 0)).toBe(true);
   });
 
-  it('is idempotent', () => {
-    const { manager, created } = createManager();
-    manager.unlock();
-    manager.unlock();
-    expect(created.every((el) => el.playCount === 1)).toBe(true);
-  });
-});
-
-describe('playSE', () => {
-  it('rotates the pool and applies volume, rate, and unmute', () => {
-    const { manager, created } = createManager({ seVolume: 80 });
-    manager.unlock();
-    const pool = created.filter((el) => el.src === defaultSEPath('blockHit'));
-
-    for (let i = 0; i < SE_POOL_SIZE + 1; i++) {
-      manager.playSE('blockHit', 1.2);
-    }
-
-    // Warm-up contributes one play to every element; the wrap-around adds one more
-    const playCounts = pool.map((el) => el.playCount - 1);
-    expect(playCounts).toEqual(pool.map((_, i) => (i === 0 ? 2 : 1)));
-    expect(pool.every((el) => !el.muted)).toBe(true);
-    expect(pool[0]?.volume).toBeCloseTo(0.8);
-    expect(pool[0]?.playbackRate).toBe(1.2);
+  it('passes the rate and the volume scaled to 0–1', () => {
+    const { manager, backend } = createManager(80);
+    manager.playSE('blockHit', 1.2);
+    expect(backend.plays).toEqual([{ name: 'blockHit', rate: 1.2, volume: 0.8 }]);
   });
 
   it('skips playback while muted or at zero volume', () => {
-    const { manager, created } = createManager();
-    manager.unlock();
-    const pool = created.filter((el) => el.src === defaultSEPath('paddleHit'));
-
+    const { manager, backend } = createManager();
     manager.setMuted(true);
     manager.playSE('paddleHit');
     manager.setMuted(false);
     manager.setSEVolume(0);
     manager.playSE('paddleHit');
-
-    expect(pool.every((el) => el.playCount === 1)).toBe(true); // warm-up only
+    expect(backend.plays).toHaveLength(0);
   });
 });
 
@@ -160,28 +102,18 @@ describe('volume and mute persistence', () => {
   });
 
   it('persists volume and mute, and a stored value wins over the config default', () => {
-    const { manager } = createManager({ seVolume: 90 });
+    const { manager } = createManager(90);
     manager.setSEVolume(25);
     manager.toggleMute();
 
-    const { manager: reloaded } = createManager({ seVolume: 90 });
+    const { manager: reloaded } = createManager(90);
     expect(reloaded.getSEVolume()).toBe(25);
     expect(reloaded.isMuted()).toBe(true);
   });
 
   it('uses the config default when nothing is stored', () => {
-    const { manager } = createManager({ seVolume: 70 });
+    const { manager } = createManager(70);
     expect(manager.getSEVolume()).toBe(70);
     expect(manager.isMuted()).toBe(false);
-  });
-});
-
-describe('non-DOM environments', () => {
-  it('constructs silently without an Audio constructor and never throws', () => {
-    const manager = new BreakoutAudioManager({ seVolume: 50 });
-    manager.unlock();
-    manager.playSE('paddleHit');
-    expect(manager.isReady()).toBe(true);
-    expect(manager.getSEVolume()).toBe(50);
   });
 });

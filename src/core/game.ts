@@ -569,14 +569,15 @@ export class BreakoutGame {
     }
   }
 
-  /** Pointer-up / leave. Ends a slider drag with audible feedback at the new level. */
+  /** Pointer-up. A valid activation event — attempt unlock, then end slider drags. */
   handlePointerUp(): void {
+    // mouseup/touchend are the events WebKit counts as activation (touchstart
+    // is not), so this is the reliable unlock point on touch devices.
+    this.audio.unlock();
     if (!this.volumeDragging) return;
     this.volumeDragging = false;
     this.suppressReadyClick = true;
-    // We are inside a user gesture, so unlock (idempotent) and let the
-    // player judge the chosen level by ear.
-    this.audio.unlock();
+    // Audible feedback so the player can judge the chosen level by ear
     this.audio.playSE('paddleHit');
   }
 
@@ -585,6 +586,8 @@ export class BreakoutGame {
   }
 
   handleClick(clientX: number, clientY: number): void {
+    // click is an activation event WebKit accepts for audio; unlock is retry-safe
+    this.audio.unlock();
     const { x, y } = this.toCanvasCoords(clientX, clientY);
 
     if (this.isInButton(x, y, UI.muteBtn)) {
