@@ -29,6 +29,7 @@ describe('loadConfig', () => {
       lang: 'en',
       showMascotComments: false,
       rewards: [{ minScore: 0, src: 'assets/rewards/reward-001.webp' }],
+      sounds: DEFAULT_CONFIG.sounds,
     });
   });
 
@@ -61,5 +62,37 @@ describe('loadConfig', () => {
       },
     });
     expect(loadConfig().rewards).toEqual([{ minScore: 0, src: 'assets/rewards/reward-001.webp' }]);
+  });
+
+  it('merges per-SE sound overrides over the convention defaults', () => {
+    vi.stubGlobal('window', {
+      BREAKOUT_CONFIG: {
+        sounds: { paddleHit: 'assets/sounds/custom-hit.mp3' },
+      },
+    });
+    const config = loadConfig();
+    expect(config.sounds.paddleHit).toBe('assets/sounds/custom-hit.mp3');
+    expect(config.sounds.blockBreak).toBe('assets/sounds/se-blockBreak.mp3');
+  });
+
+  it('warns on unknown sound names and non-string paths, keeping defaults', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal('window', {
+      BREAKOUT_CONFIG: {
+        sounds: { explosion: 'assets/sounds/boom.mp3', paddleHit: 42 },
+      },
+    });
+    const config = loadConfig();
+    expect(config.sounds).toEqual(DEFAULT_CONFIG.sounds);
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to default sounds when the sounds field is not an object', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal('window', {
+      BREAKOUT_CONFIG: { sounds: 'loud' },
+    });
+    expect(loadConfig().sounds).toEqual(DEFAULT_CONFIG.sounds);
+    expect(warn).toHaveBeenCalled();
   });
 });

@@ -16,14 +16,22 @@ function bootstrap(): void {
     new BreakoutGame(canvas, config.lang, config.difficulty, {
       rewards: config.rewards,
       showMascotComments: config.showMascotComments,
+      seVolume: config.seVolume,
+      sounds: config.sounds,
     });
   }
 
   canvas.addEventListener('mousemove', (event) => {
     getCurrentGame(canvas)?.handleMouseMove(event.clientX, event.clientY);
   });
-  canvas.addEventListener('mousedown', () => {
-    getCurrentGame(canvas)?.handleSwipeStart();
+  canvas.addEventListener('mousedown', (event) => {
+    getCurrentGame(canvas)?.handlePointerDown(event.clientX, event.clientY);
+  });
+  canvas.addEventListener('mouseup', () => {
+    getCurrentGame(canvas)?.handlePointerUp();
+  });
+  canvas.addEventListener('mouseleave', () => {
+    getCurrentGame(canvas)?.handlePointerUp();
   });
   canvas.addEventListener('click', (event) => {
     getCurrentGame(canvas)?.handleClick(event.clientX, event.clientY);

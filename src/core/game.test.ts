@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   BRICK_COLORS,
   DEFAULT_BRICK_CONFIG,
+  UI,
   calculatePaddleReflection,
   checkBallWallCollision,
   circleRectCollision,
   createBrick,
   resolveBrickCollision,
+  volumeFromSliderX,
 } from './game';
 import type { Ball } from './entities';
 
@@ -88,5 +90,23 @@ describe('createBrick', () => {
     expect(createBrick(0, 0, DEFAULT_BRICK_CONFIG, { hp: 0.5, type: 0.1, color: 0 }).type).toBe(
       'bomb',
     );
+  });
+});
+
+describe('volumeFromSliderX', () => {
+  const { volumeTrack } = UI.ready;
+
+  it('maps the track ends to 0 and 100', () => {
+    expect(volumeFromSliderX(volumeTrack.x)).toBe(0);
+    expect(volumeFromSliderX(volumeTrack.x + volumeTrack.w)).toBe(100);
+  });
+
+  it('maps the middle of the track to 50', () => {
+    expect(volumeFromSliderX(volumeTrack.x + volumeTrack.w / 2)).toBe(50);
+  });
+
+  it('clamps positions outside the track', () => {
+    expect(volumeFromSliderX(0)).toBe(0);
+    expect(volumeFromSliderX(10_000)).toBe(100);
   });
 });

@@ -5,6 +5,7 @@ import { MASCOT_COMMENTS, type Lang, type MascotComment } from '../i18n/comments
 import { render, TRACK_TITLE_DURATION, LEVEL_UP_DURATION } from '../render/renderer';
 import type { RenderContext } from '../render/renderer';
 import { BreakoutAudioManager } from '../audio';
+import type { BreakoutSEType } from '../audio';
 import type { RewardThreshold } from '../config';
 
 export type {
@@ -164,6 +165,10 @@ export const UI = {
   ready: {
     easyBtn: { x: 60, y: 350, w: 80, h: 32 },
     hardBtn: { x: 180, y: 350, w: 80, h: 32 },
+    // SE volume slider between the title and the difficulty buttons.
+    // volumeHit is the generous pointer target; volumeTrack is the visual bar.
+    volumeTrack: { x: 95, y: 314, w: 130, h: 6 },
+    volumeHit: { x: 60, y: 300, w: 200, h: 32 },
   },
   gameover: {
     retryBtn: { x: 110, y: 420, w: 100, h: 36 },
@@ -292,6 +297,16 @@ export interface BreakoutGameOptions {
   rewards?: RewardThreshold[];
   /** When false, mascot speech bubbles are suppressed. Defaults to true. */
   showMascotComments?: boolean;
+  /** Initial SE volume (0–100); a setting stored by the in-game slider wins. */
+  seVolume?: number;
+  /** Per-SE audio file paths; missing entries use the assets/sounds convention. */
+  sounds?: Partial<Record<BreakoutSEType, string>>;
+}
+
+/** Map a canvas x coordinate on the ready-screen slider track to a 0–100 volume. */
+export function volumeFromSliderX(x: number): number {
+  const { volumeTrack } = UI.ready;
+  return Math.max(0, Math.min(100, Math.round(((x - volumeTrack.x) / volumeTrack.w) * 100)));
 }
 
 const canvasGameMap = new WeakMap<HTMLCanvasElement, BreakoutGame>();
@@ -356,7 +371,11 @@ export class BreakoutGame {
   private readonly options: BreakoutGameOptions;
   private readonly rewards: RewardThreshold[];
   private readonly showComments: boolean;
-  private readonly audio = new BreakoutAudioManager();
+  private readonly audio: BreakoutAudioManager;
+  private volumeDragging = false;
+  // A slider drag can end on top of a button; the click that follows the
+  // release must not start the game. Cleared on the next pointer-down.
+  private suppressReadyClick = false;
   private mascot = {
     comment: '',
     displayText: '',
@@ -384,6 +403,10 @@ export class BreakoutGame {
     this.options = options;
     this.rewards = options.rewards ?? [];
     this.showComments = options.showMascotComments ?? true;
+    this.audio = new BreakoutAudioManager({
+      seVolume: options.seVolume,
+      sounds: options.sounds,
+    });
 
     this.canvas = canvas;
     // Use logical dimensions for game coordinate system
@@ -505,8 +528,12 @@ export class BreakoutGame {
   }
 
   handleMouseMove(clientX: number, clientY: number): void {
-    if (this._gameState !== 'playing') return;
     const { x } = this.toCanvasCoords(clientX, clientY);
+    if (this.volumeDragging && this._gameState === 'ready') {
+      this.audio.setSEVolume(volumeFromSliderX(x));
+      return;
+    }
+    if (this._gameState !== 'playing') return;
     this.paddle.x = Math.max(
       0,
       Math.min(x - this.paddle.width / 2, this.canvasWidth - this.paddle.width),
@@ -525,17 +552,36 @@ export class BreakoutGame {
       this.audio.toggleMute();
       return;
     }
+    this.handlePointerDown(clientX, clientY);
+    if (this.volumeDragging) return; // slider grab — not a tap
     if (this._gameState !== 'playing') {
       this.handleClick(clientX, clientY);
     }
   }
 
-  handleSwipeStart(): void {
-    // Reserved for future swipe handling; currently a no-op.
+  /** Pointer-down (mouse or touch). Starts slider drags on the ready screen. */
+  handlePointerDown(clientX: number, clientY: number): void {
+    this.suppressReadyClick = false;
+    const { x, y } = this.toCanvasCoords(clientX, clientY);
+    if (this._gameState === 'ready' && this.isInButton(x, y, UI.ready.volumeHit)) {
+      this.volumeDragging = true;
+      this.audio.setSEVolume(volumeFromSliderX(x));
+    }
+  }
+
+  /** Pointer-up / leave. Ends a slider drag with audible feedback at the new level. */
+  handlePointerUp(): void {
+    if (!this.volumeDragging) return;
+    this.volumeDragging = false;
+    this.suppressReadyClick = true;
+    // We are inside a user gesture, so unlock (idempotent) and let the
+    // player judge the chosen level by ear.
+    this.audio.unlock();
+    this.audio.playSE('paddleHit');
   }
 
   handleTouchEnd(): void {
-    // Reserved for future touch-end handling; currently a no-op.
+    this.handlePointerUp();
   }
 
   handleClick(clientX: number, clientY: number): void {
@@ -564,6 +610,12 @@ export class BreakoutGame {
 
   private handleReadyClick(x: number, y: number): void {
     if (!this.iconsLoaded || this.pendingStart) return;
+    if (this.suppressReadyClick) {
+      this.suppressReadyClick = false;
+      return;
+    }
+    // Slider interaction is handled on pointer-down/up; don't treat it as a start
+    if (this.isInButton(x, y, UI.ready.volumeHit)) return;
 
     const { easyBtn, hardBtn } = UI.ready;
     if (this.isInButton(x, y, easyBtn)) {
@@ -1557,6 +1609,7 @@ export class BreakoutGame {
       rewardImage: this.getRewardImageForScore(this._score),
       dangerLevel: this.calculateDangerLevel(),
       muted: this.audio.isMuted(),
+      seVolume: this.audio.getSEVolume(),
       trackTitleText: this.trackTitleText,
       trackTitleTimer: this.trackTitleTimer,
       levelUpText: this.levelUpText,
