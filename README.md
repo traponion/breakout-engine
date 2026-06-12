@@ -66,6 +66,6 @@ See `CLAUDE.md` for coding standards and development commands. `DESIGN.md` cover
 ## License
 
 - **Source code: MIT.** See `LICENSE`.
-- **Bundled sample assets: separate terms.** See `assets/LICENSE.txt`. In short: edit and replace them freely in your own forks; do not redistribute the sample files as standalone assets, and do not ship them unchanged as the default mascot of a derivative product.
+- **Bundled sample content: separate terms.** See `assets/LICENSE.txt`. This covers the files under `assets/` and the sample dialogue catalog in `src/i18n/comments.ts`. In short: edit and replace them freely in your own forks; do not redistribute the samples as standalone assets, and do not ship them unchanged as the default mascot of a derivative product.
 
 Please bring your own mascot. That's the fun part.
