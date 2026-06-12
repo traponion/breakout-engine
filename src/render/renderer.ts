@@ -59,6 +59,7 @@ export interface RenderContext {
     icon: HTMLImageElement | null;
     iconLoaded: boolean;
   };
+  showMascotComments: boolean; // when false, the bubble chrome is not drawn at all
   lang: Lang;
   iconsLoaded: boolean;
   iconsLoadedCount: number;
@@ -115,7 +116,7 @@ export function render(rctx: RenderContext): void {
   // Ball position marker (drawn after other game elements, only during gameplay)
   if (gameState === 'playing') drawBallMarker(rctx);
   drawUI(rctx);
-  drawMascotComment(rctx);
+  if (rctx.showMascotComments) drawMascotComment(rctx);
 
   // Draw state-specific overlays
   if (gameState === 'ready') {
