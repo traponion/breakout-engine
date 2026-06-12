@@ -3,9 +3,10 @@
 ## Scope
 
 `breakout-engine` is a fully client-side, static project. It runs in the
-browser with **no backend, no network requests, no telemetry, and no
-collection of personal data**. There is no server to attack and no data store
-to breach.
+browser with **no backend, no telemetry, and no collection of personal
+data**. Its only network access is loading the site's own static assets
+(see `DESIGN.md`, Server-Zero); it never calls external origins. There is
+no server to attack and no data store to breach.
 
 As a result, the realistic security surface is limited to:
 

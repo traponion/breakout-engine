@@ -30,15 +30,16 @@ Users tune the game by editing `config.js`, which is loaded via a `<script>` tag
 ```js
 // config.js — shipped alongside the build
 window.BREAKOUT_CONFIG = {
-  difficulty: 'NORMAL', // 'EASY' | 'NORMAL' | 'HARD'
-  bgmVolume: 80, //         0–100
+  difficulty: 'easy', //    'easy' | 'hard'
+  bgmVolume: 80, //         0–100 (reserved until BGM ships)
   seVolume: 90, //          0–100
-  lang: 'en', //            'en' | (extendable)
+  lang: 'ja', //            'ja' | 'en' (extendable via src/i18n/)
   showMascotComments: true,
   rewards: [
     { minScore: 0, src: 'assets/rewards/reward-001.webp' },
     // ...
   ],
+  // sounds: { paddleHit: '...' } — per-SE path overrides (see Asset Conventions)
 };
 ```
 
@@ -54,7 +55,7 @@ Bundled sample assets live under `assets/`. The engine resolves paths by **conve
 assets/mascot/face-${state}.webp
 ```
 
-Where `${state}` is one of: `normal`, `happy`, `sad`, `cry`, `surprised`, `shy`, `sparkle`. The engine constructs the path from the state name at render time. Users wanting to swap the mascot replace the files in place.
+Where `${state}` is one of: `normal`, `sad`, `cry`, `surprised`, `shy`, `sparkle` (the list is `MASCOT_FACE_STATES` in `src/core/game.ts`). The engine constructs the path from the state name at render time. Users wanting to swap the mascot replace the files in place.
 
 ### Rewards
 
@@ -83,9 +84,13 @@ Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm
 
 ### Constraints
 
-- **WebP only** for images. Any other format is rejected by lint or build.
-- **75 KB per image** as a soft cap. Larger images fail CI.
-- **EXIF metadata stripped** by the build step.
+- **WebP only** for images.
+- **75 KB per image** as a soft cap.
+- **No EXIF metadata** in committed images.
+
+These are review-time checks today — nothing in CI or the build step enforces
+them yet. Verify manually before committing image assets; automating the
+checks is a candidate follow-up.
 
 ## Server-Zero Principle
 
@@ -102,7 +107,7 @@ The engine must run from a `file://` URL with no network access. To enforce this
 - **Time to first interactive:** under 1 second on broadband.
 - **Frame budget:** under 16 ms per frame on a modern laptop CPU at 60 fps.
 
-Regressions against these budgets are caught by the build step (size) or by manual profiling (timing). New dependencies that materially increase any of these numbers require justification in the PR description.
+Budgets are verified manually at review time — e.g. `gzip -c dist/bundle.js | wc -c` for size, browser profiling for timing; nothing in CI enforces them yet. New dependencies that materially increase any of these numbers require justification in the PR description.
 
 ## Extension Points (Summary)
 
