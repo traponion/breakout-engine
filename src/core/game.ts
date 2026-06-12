@@ -728,16 +728,27 @@ export class BreakoutGame {
   }
 
   private preloadIcons(): void {
+    if (!this.showComments) {
+      // Nothing will draw the faces — don't load them or gate start on them.
+      this.iconsLoaded = true;
+      return;
+    }
     const totalIcons = MASCOT_FACE_PATHS.length;
+    // A failed load counts as processed (like the reward preloader) so a
+    // missing or broken face file can't hang the loading screen.
+    const onSettled = (): void => {
+      this.iconsLoadedCount++;
+      if (this.iconsLoadedCount >= totalIcons) {
+        this.iconsLoaded = true;
+      }
+    };
     for (const path of MASCOT_FACE_PATHS) {
       const img = new Image();
       img.addEventListener('load', () => {
         this.mascot.iconCache[path] = img;
-        this.iconsLoadedCount++;
-        if (this.iconsLoadedCount >= totalIcons) {
-          this.iconsLoaded = true;
-        }
+        onSettled();
       });
+      img.addEventListener('error', onSettled);
       img.src = path;
     }
   }
@@ -1604,6 +1615,7 @@ export class BreakoutGame {
       warning: this.warning,
       screenShake: this.screenShake,
       mascot: this.mascot,
+      showMascotComments: this.showComments,
       lang: this.lang,
       iconsLoaded: this.iconsLoaded,
       iconsLoadedCount: this.iconsLoadedCount,
