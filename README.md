@@ -5,7 +5,13 @@ A small, dependency-light HTML5 Canvas breakout game engine with customizable as
 [![CI](https://github.com/traponion/breakout-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/traponion/breakout-engine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-> Phase 1 scaffolding. The engine itself is being implemented in a later phase.
+English | [日本語](./README.ja.md)
+
+> Playable now: the core game and sound effects have shipped. Background music is a planned follow-up.
+
+| Ready                                          | Playing                                       | Game over                                             |
+| ---------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- |
+| ![Ready screen](./docs/screenshots/ready.webp) | ![Gameplay](./docs/screenshots/gameplay.webp) | ![Game over screen](./docs/screenshots/gameover.webp) |
 
 ## Goals
 
@@ -37,10 +43,10 @@ Bundled sample assets live under `assets/`. Replace files in place to use your o
 ```js
 // config.js
 window.BREAKOUT_CONFIG = {
-  difficulty: 'NORMAL', // 'EASY' | 'NORMAL' | 'HARD'
-  bgmVolume: 80,
-  seVolume: 90,
-  lang: 'en',
+  difficulty: 'easy', // 'easy' | 'hard'
+  bgmVolume: 80, // 0–100 (reserved; BGM ships in a later build)
+  seVolume: 90, // 0–100 initial SE volume (the in-game slider overrides this)
+  lang: 'ja', // 'ja' | 'en'
   showMascotComments: true,
   rewards: [
     { minScore: 0, src: 'assets/rewards/reward-001.webp' },
@@ -48,6 +54,8 @@ window.BREAKOUT_CONFIG = {
     { minScore: 6001, src: 'assets/rewards/reward-003.webp' },
     { minScore: 9001, src: 'assets/rewards/reward-004.webp' },
   ],
+  // Per-SE sound overrides. Defaults follow assets/sounds/se-<name>.mp3:
+  // sounds: { paddleHit: 'assets/sounds/my-paddle-hit.mp3' },
 };
 ```
 
