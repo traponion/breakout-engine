@@ -1,10 +1,12 @@
 Sample Asset Notice
 ===================
 
-The character images, dialogue strings, sound effects, and other media
-bundled under `assets/` are sample materials. They ship with this repository so that the
-engine has a runnable default experience, and so that contributors have
-something concrete to test rendering and audio against.
+The character images, sound effects, and other media bundled under
+`assets/`, together with the sample mascot dialogue catalog shipped in
+source form at `src/i18n/comments.ts`, are sample materials. They ship
+with this repository so that the engine has a runnable default
+experience, and so that contributors have something concrete to test
+rendering and audio against.
 
 Customization is the intended use:
 
