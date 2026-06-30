@@ -109,6 +109,23 @@ The engine must run from a `file://` URL with no network access. To enforce this
 
 Budgets are verified manually at review time — e.g. `gzip -c dist/bundle.js | wc -c` for size, browser profiling for timing; nothing in CI enforces them yet. New dependencies that materially increase any of these numbers require justification in the PR description.
 
+## Testing & Coverage
+
+Tests live next to source files as `*.test.ts`. Vitest auto-discovers, and CI runs `npm run test:coverage` (V8 provider) with a global floor enforced via `vitest.config.ts`.
+
+Initial floors (set just below the current baseline so any regression fails the build, while leaving room for the gradual ratchet up):
+
+| Metric     | Floor | Current |
+| ---------- | ----- | ------- |
+| Lines      | 25%   | ~28%    |
+| Statements | 25%   | ~29%    |
+| Branches   | 22%   | ~24%    |
+| Functions  | 35%   | ~39%    |
+
+Pure data and type-only files (`src/i18n/**`, `src/**/types.ts`, `src/core/entities.ts`) are excluded from coverage — measuring them inflates the number without adding signal.
+
+Ratchet rule: when a PR raises coverage, raise the matching floor in the same PR. Lowering a floor requires a one-line justification in the PR description (e.g. removed a tested module). The intent is to make the floor follow real coverage upward over time, not to lock in today's gaps.
+
 ## Extension Points (Summary)
 
 | What                        | Where                               | How                                              |
