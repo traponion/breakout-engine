@@ -31,7 +31,6 @@ Users tune the game by editing `config.js`, which is loaded via a `<script>` tag
 // config.js — shipped alongside the build
 window.BREAKOUT_CONFIG = {
   difficulty: 'easy', //    'easy' | 'hard'
-  bgmVolume: 80, //         0–100 (reserved until BGM ships)
   seVolume: 90, //          0–100
   lang: 'ja', //            'ja' | 'en' (extendable via src/i18n/)
   showMascotComments: true,
@@ -79,8 +78,6 @@ Playback picks one of two backends at boot, by URL scheme — the same default-p
 - **`file://`** (the primary replace-in-place persona): `fetch` of local files is blocked, so SE play through small pools of `HTMLAudioElement` instances (rotated per play so rapid repeats overlap). Media elements load relative paths the way `<img>` does, keeping the engine fully functional offline. Known limit on this path: iOS Safari treats the element `volume` property as user-controlled — irrelevant in practice, since iOS reaches the demo over http(s).
 
 Audio unlocks on the first completed user gesture — `click`/`touchend`/`mouseup`, since WebKit does not count `touchstart` as activation — and unlock attempts are retried on later gestures. No sound is attempted before the unlock.
-
-Background music (follow-up) ships the same way: pre-rendered `assets/sounds/bgm-*.mp3` through the same dual-backend mechanism.
 
 ### Constraints
 

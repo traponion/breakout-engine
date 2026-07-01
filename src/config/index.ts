@@ -30,8 +30,6 @@ export type SoundPaths = Record<BreakoutSEType, string>;
 export interface BreakoutConfig {
   /** Initial difficulty offered on the ready screen. */
   difficulty: DifficultyLevel;
-  /** 0–100. Reserved: BGM ships in a follow-up, so this has no effect yet. */
-  bgmVolume: number;
   /** 0–100. Initial SE volume; the in-game slider overrides and persists it. */
   seVolume: number;
   lang: Lang;
@@ -48,7 +46,6 @@ function defaultSoundPaths(): SoundPaths {
 
 export const DEFAULT_CONFIG: BreakoutConfig = {
   difficulty: 'easy',
-  bgmVolume: 80,
   seVolume: 90,
   lang: 'ja',
   showMascotComments: true,
@@ -159,7 +156,6 @@ export function loadConfig(): BreakoutConfig {
   }
   return {
     difficulty: asDifficulty(raw.difficulty),
-    bgmVolume: asVolume(raw.bgmVolume, 'bgmVolume', DEFAULT_CONFIG.bgmVolume),
     seVolume: asVolume(raw.seVolume, 'seVolume', DEFAULT_CONFIG.seVolume),
     lang: asLang(raw.lang),
     showMascotComments: asBool(raw.showMascotComments, DEFAULT_CONFIG.showMascotComments),

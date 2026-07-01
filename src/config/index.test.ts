@@ -15,7 +15,6 @@ describe('loadConfig', () => {
     vi.stubGlobal('window', {
       BREAKOUT_CONFIG: {
         difficulty: 'hard',
-        bgmVolume: 0,
         seVolume: 100,
         lang: 'en',
         showMascotComments: false,
@@ -24,7 +23,6 @@ describe('loadConfig', () => {
     });
     expect(loadConfig()).toEqual({
       difficulty: 'hard',
-      bgmVolume: 0,
       seVolume: 100,
       lang: 'en',
       showMascotComments: false,
@@ -38,14 +36,12 @@ describe('loadConfig', () => {
     vi.stubGlobal('window', {
       BREAKOUT_CONFIG: {
         difficulty: 'impossible',
-        bgmVolume: 999,
         lang: 'fr',
         showMascotComments: 'yes',
       },
     });
     const config = loadConfig();
     expect(config.difficulty).toBe(DEFAULT_CONFIG.difficulty);
-    expect(config.bgmVolume).toBe(DEFAULT_CONFIG.bgmVolume);
     expect(config.lang).toBe(DEFAULT_CONFIG.lang);
     expect(config.showMascotComments).toBe(DEFAULT_CONFIG.showMascotComments);
     expect(config.rewards).toEqual(DEFAULT_CONFIG.rewards);

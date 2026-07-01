@@ -5,7 +5,6 @@
 // anything missing or invalid (see DESIGN.md).
 window.BREAKOUT_CONFIG = {
   difficulty: 'easy', //          'easy' | 'hard'
-  bgmVolume: 80, //               0–100 (reserved; BGM ships in a later build)
   seVolume: 90, //                0–100 initial SE volume (the in-game slider overrides
   //                              this and persists per browser)
   lang: 'ja', //                  'ja' | 'en'
