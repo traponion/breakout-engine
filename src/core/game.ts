@@ -265,14 +265,16 @@ export function createBrick(
   config: BrickConfig,
   random: { hp: number; type: number; color: number },
 ): Brick {
-  let hp = 1;
-  if (random.hp < 0.15) hp = 3;
-  else if (random.hp < 0.4) hp = 2;
+  const hp = random.hp < 0.15 ? 3 : random.hp < 0.4 ? 2 : 1;
 
-  let type: BrickType = 'normal';
-  if (random.type < 0.05) type = 'both';
-  else if (random.type < 0.18) type = 'bomb';
-  else if (random.type < 0.28) type = 'laser';
+  const type: BrickType =
+    random.type < 0.05
+      ? 'both'
+      : random.type < 0.18
+        ? 'bomb'
+        : random.type < 0.28
+          ? 'laser'
+          : 'normal';
 
   const color = BRICK_COLORS[Math.floor(random.color * BRICK_COLORS.length)] ?? '#ff6b6b';
   return {
@@ -776,6 +778,7 @@ export class BreakoutGame {
       this.rewardImagesLoaded = true;
       return;
     }
+    // TODO(#23): revisit with Promise.all — mutable counter is genuinely async-shaped here.
     let loadedCount = 0;
     const onComplete = (): void => {
       loadedCount++;
@@ -796,12 +799,11 @@ export class BreakoutGame {
 
   private getRewardImageForScore(score: number): HTMLImageElement | null {
     // Pick the reward with the highest threshold not exceeding the score.
-    let selected: RewardThreshold | undefined;
-    for (const reward of this.rewards) {
-      if (score >= reward.minScore && (!selected || reward.minScore >= selected.minScore)) {
-        selected = reward;
-      }
-    }
+    const selected = this.rewards.reduce<RewardThreshold | undefined>(
+      (best, reward) =>
+        score >= reward.minScore && (!best || reward.minScore >= best.minScore) ? reward : best,
+      undefined,
+    );
     if (!selected) return null;
     return this.rewardImages[selected.src] ?? null;
   }
@@ -975,12 +977,10 @@ export class BreakoutGame {
 
   // Calculate danger level (0-1) based on lowest brick position
   private calculateDangerLevel(): number {
-    let lowestY = 0;
-    for (const b of this.bricks) {
-      if (b.alive && b.y + b.height > lowestY) {
-        lowestY = b.y + b.height;
-      }
-    }
+    const lowestY = this.bricks.reduce(
+      (maxY, b) => (b.alive && b.y + b.height > maxY ? b.y + b.height : maxY),
+      0,
+    );
     if (lowestY < DANGER_ZONE.startY) return 0;
     const progress = (lowestY - DANGER_ZONE.startY) / (DANGER_ZONE.paddleY - DANGER_ZONE.startY);
     return Math.min(1, Math.max(0, progress));

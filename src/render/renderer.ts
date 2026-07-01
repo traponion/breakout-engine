@@ -6,6 +6,7 @@ import type {
   Ball,
   Paddle,
   Brick,
+  BrickType,
   Bullet,
   HomingBullet,
   Laser,
@@ -367,15 +368,12 @@ function drawComboPopups(rctx: RenderContext): void {
     const progress = 1 - p.life / COMBO_POPUP_LIFE;
     const alpha = p.life / COMBO_POPUP_LIFE;
     const y = p.y - progress * 20;
-    let fontSize = 12;
-    let color = '#ffffff';
-    if (p.combo >= 5) {
-      fontSize = 20;
-      color = '#ff4444';
-    } else if (p.combo >= 3) {
-      fontSize = 16;
-      color = '#ffff00';
-    }
+    const [fontSize, color] =
+      p.combo >= 5
+        ? ([20, '#ff4444'] as const)
+        : p.combo >= 3
+          ? ([16, '#ffff00'] as const)
+          : ([12, '#ffffff'] as const);
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
     ctx.font = `bold ${String(fontSize)}px monospace`;
@@ -595,11 +593,13 @@ function drawCautionAlert(rctx: RenderContext): void {
 
   // Draw diagonal stripes
   ctx.fillStyle = '#ffcc00';
-  for (
-    let x = -barHeight + ((fc * 2) % (stripeWidth * 2));
-    x < canvasWidth + barHeight;
-    x += stripeWidth * 2
-  ) {
+  const stripeStartX = -barHeight + ((fc * 2) % (stripeWidth * 2));
+  const stripeStep = stripeWidth * 2;
+  const stripeXs = Array.from(
+    { length: Math.ceil((canvasWidth + barHeight - stripeStartX) / stripeStep) },
+    (_, i) => stripeStartX + i * stripeStep,
+  );
+  for (const x of stripeXs) {
     ctx.beginPath();
     ctx.moveTo(x, barY);
     ctx.lineTo(x + barHeight, barY + barHeight);
@@ -643,6 +643,13 @@ function drawDeathParticles(rctx: RenderContext): void {
   ctx.globalAlpha = 1;
 }
 
+const BRICK_TYPE_ICONS: Record<BrickType, string> = {
+  normal: '',
+  bomb: '爆',
+  laser: '雷',
+  both: '爆雷',
+};
+
 function drawBricks(rctx: RenderContext): void {
   const { ctx, bricks } = rctx;
   for (const b of bricks) {
@@ -661,21 +668,7 @@ function drawBricks(rctx: RenderContext): void {
     }
 
     // Build label: combine HP and type icon horizontally
-    let icon = '';
-    switch (b.type) {
-      case 'both': {
-        icon = '爆雷';
-        break;
-      }
-      case 'bomb': {
-        icon = '爆';
-        break;
-      }
-      case 'laser': {
-        icon = '雷';
-        break;
-      }
-    }
+    const icon = BRICK_TYPE_ICONS[b.type];
     const hpText = b.hp > 1 ? b.hp.toString() : '';
     const label = [hpText, icon].filter(Boolean).join(' ');
 
@@ -739,8 +732,7 @@ function drawSingleHomingBullet(
   ctx.fill();
   ctx.beginPath();
   ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-  let col = b.color;
-  if (b.locked) col = frameCount % 4 < 2 ? '#ffffff' : '#ff3300';
+  const col = b.locked ? (frameCount % 4 < 2 ? '#ffffff' : '#ff3300') : b.color;
   ctx.fillStyle = col;
   ctx.fill();
   return !b.locked;
@@ -749,13 +741,11 @@ function drawSingleHomingBullet(
 function drawHomingBullets(rctx: RenderContext): void {
   const { paddle, homingBullets } = rctx;
   const [targetX, targetY] = [paddle.x + paddle.width / 2, paddle.y];
-  let hasTracking = false;
-  const locked: HomingBullet[] = [];
-
-  for (const b of homingBullets) {
-    if (drawSingleHomingBullet(rctx, b, targetX, targetY)) hasTracking = true;
-    if (b.locked && b.lockedX !== undefined) locked.push(b);
-  }
+  const hasTracking = homingBullets.reduce(
+    (tracking, b) => drawSingleHomingBullet(rctx, b, targetX, targetY) || tracking,
+    false,
+  );
+  const locked = homingBullets.filter((b) => b.locked && b.lockedX !== undefined);
 
   if (hasTracking) drawTarget(rctx, targetX, targetY, false);
   for (const b of locked)
@@ -819,9 +809,7 @@ function drawUI(rctx: RenderContext): void {
     ctx.fillRect(hpX + hpW * targetRatio, hpY, hpW * (displayRatio - targetRatio), hpH);
   }
   // Active HP bar — color based on actual HP to avoid flicker during drain
-  let hpColor = '#ff0000';
-  if (targetRatio > 0.5) hpColor = '#00ff00';
-  else if (targetRatio > 0.25) hpColor = '#ffff00';
+  const hpColor = targetRatio > 0.5 ? '#00ff00' : targetRatio > 0.25 ? '#ffff00' : '#ff0000';
   ctx.fillStyle = hpColor;
   ctx.fillRect(hpX, hpY, hpW * displayRatio, hpH);
   ctx.strokeStyle = '#666';
@@ -1079,12 +1067,11 @@ function drawMascotComment(rctx: RenderContext): void {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     const typing = n.charIndex < n.comment.length && n.timer > 0;
-    let [fx, fy] = [iconX, iconY];
+    const [fx, fy] = typing ? [0, 0] : [iconX, iconY];
     if (typing) {
       ctx.translate(iconX + 24, iconY + 24);
       ctx.rotate(Math.sin(frameCount * 0.3) * 0.1);
       ctx.translate(-24, -24 + Math.sin(frameCount * 0.4) * 3);
-      [fx, fy] = [0, 0];
     }
     ctx.fillStyle = '#000';
     ctx.beginPath();
