@@ -26,6 +26,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+      # Match ci.yml — see comment there.
+      - run: npm i -g npm@latest
       - run: npm ci
       - run: npm run build
       - name: Stage Pages artifact
