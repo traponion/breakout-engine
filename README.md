@@ -7,7 +7,7 @@ A small, dependency-light HTML5 Canvas breakout game engine with customizable as
 
 English | [日本語](./README.ja.md)
 
-> Playable now: the core game and sound effects have shipped. Background music is a planned follow-up.
+> Playable now: the core game and sound effects have shipped.
 
 | Ready                                          | Playing                                       | Game over                                             |
 | ---------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- |
@@ -44,7 +44,6 @@ Bundled sample assets live under `assets/`. Replace files in place to use your o
 // config.js
 window.BREAKOUT_CONFIG = {
   difficulty: 'easy', // 'easy' | 'hard'
-  bgmVolume: 80, // 0–100 (reserved; BGM ships in a later build)
   seVolume: 90, // 0–100 initial SE volume (the in-game slider overrides this)
   lang: 'ja', // 'ja' | 'en'
   showMascotComments: true,

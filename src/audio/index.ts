@@ -6,16 +6,12 @@
  * (low latency, smooth on iOS), element pools under `file://` (media
  * elements load local paths where fetch is blocked). Both follow the same
  * config/asset contract, so replace-in-place works identically everywhere.
- *
- * BGM methods are stubs: background music ships in a follow-up as
- * `assets/sounds/bgm-*.mp3` through this same mechanism.
  */
 
 import { BufferSEBackend } from './buffer-backend';
 import { ElementSEBackend } from './element-backend';
 import { SE_NAMES, defaultSEPath } from './types';
 import type { BreakoutSEType, SEBackend } from './types';
-import type { DifficultyLevel } from '../core/entities';
 
 export { SE_NAMES, defaultSEPath } from './types';
 export type { BreakoutSEType, SEBackend } from './types';
@@ -120,15 +116,6 @@ export class BreakoutAudioManager {
   playSE(type: BreakoutSEType, playbackRate = 1): void {
     if (this.muted || this.seVolume === 0) return;
     this.backend.play(type, playbackRate, this.seVolume / 100);
-  }
-
-  playBGM(difficultyLevel?: DifficultyLevel): string | null {
-    void difficultyLevel;
-    return null; // BGM ships in a follow-up issue
-  }
-
-  stopBGM(): void {
-    // No-op: nothing is playing.
   }
 
   getSEVolume(): number {

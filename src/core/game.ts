@@ -2,7 +2,7 @@
 
 export { MASCOT_COMMENTS, type Lang, type MascotComment } from '../i18n/comments';
 import { MASCOT_COMMENTS, type Lang, type MascotComment } from '../i18n/comments';
-import { render, TRACK_TITLE_DURATION, LEVEL_UP_DURATION } from '../render/renderer';
+import { render, LEVEL_UP_DURATION } from '../render/renderer';
 import type { RenderContext } from '../render/renderer';
 import { BreakoutAudioManager } from '../audio';
 import type { BreakoutSEType } from '../audio';
@@ -357,8 +357,6 @@ export class BreakoutGame {
   private preset: DifficultyPreset;
   private frameCount = 0;
   private sessionId = 0;
-  private trackTitleText: string | null = null;
-  private trackTitleTimer = 0; // counts down from 150; <=0 means static badge mode
   private levelUpText: string | null = null;
   private levelUpTimer = 0; // counts down from LEVEL_UP_DURATION; <=0 means hidden
   private lastFrameTime = 0;
@@ -490,7 +488,6 @@ export class BreakoutGame {
       canvasGameMap.delete(this.canvas);
     }
     this._gameState = 'gameover';
-    this.audio.stopBGM();
     cancelAnimationFrame(this.animationId);
   }
 
@@ -503,10 +500,6 @@ export class BreakoutGame {
     this.lastFrameTime = 0;
     this.gameTime = 0;
     this.lastSpawn = { difficulty: 0, homing: 0, laser: 0, rain: 0, homingLaser: 0 };
-    // Audio is a silent stub in this build; playBGM returns null and no track title shows.
-    this.audio.playBGM(this._difficultyLevel);
-    this.trackTitleText = null;
-    this.trackTitleTimer = TRACK_TITLE_DURATION;
     this.showMascotComment('start');
     this.animationId = requestAnimationFrame((t) => {
       this.gameLoop(t);
@@ -514,7 +507,6 @@ export class BreakoutGame {
   }
 
   restart(): void {
-    this.audio.stopBGM();
     cancelAnimationFrame(this.animationId);
     this.sessionId++;
     Object.assign(this, {
@@ -541,8 +533,6 @@ export class BreakoutGame {
       gameTime: 0,
       lastSpawn: { difficulty: 0, homing: 0, laser: 0, rain: 0, homingLaser: 0 },
       _gameState: 'ready' as const,
-      trackTitleText: null,
-      trackTitleTimer: 0,
       levelUpText: null,
       levelUpTimer: 0,
       comboPopups: [],
@@ -1213,7 +1203,6 @@ export class BreakoutGame {
     else this.warning = '';
     if (this.screenShake > 0) this.screenShake *= Math.pow(SHAKE.decay, this.dt);
     if (this.invincibleTimer > 0) this.invincibleTimer -= this.dt;
-    if (this.trackTitleTimer > 0) this.trackTitleTimer -= this.dt;
     if (this.levelUpTimer > 0) this.levelUpTimer -= this.dt;
     // Drooling HP: drain display toward actual; snap up instantly on heal
     if (this._displayLives > this._lives) {
@@ -1455,7 +1444,6 @@ export class BreakoutGame {
     if (this.screenShake > 0) this.screenShake *= Math.pow(SHAKE.deathDecay, this.dt);
     if (this.deathTimer <= 0) {
       this._gameState = 'gameover';
-      this.audio.stopBGM();
       this.audio.playSE('gameOver');
       this.options.onGameOver?.();
     }
@@ -1645,8 +1633,6 @@ export class BreakoutGame {
       dangerLevel: this.calculateDangerLevel(),
       muted: this.audio.isMuted(),
       seVolume: this.audio.getSEVolume(),
-      trackTitleText: this.trackTitleText,
-      trackTitleTimer: this.trackTitleTimer,
       levelUpText: this.levelUpText,
       levelUpTimer: this.levelUpTimer,
       comboPopups: this.comboPopups,

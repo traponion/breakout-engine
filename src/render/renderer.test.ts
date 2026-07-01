@@ -64,8 +64,6 @@ function baseContext(ctx: CanvasRenderingContext2D, showMascotComments: boolean)
     dangerLevel: 0,
     muted: false,
     seVolume: 90,
-    trackTitleText: null,
-    trackTitleTimer: 0,
     levelUpText: null,
     levelUpTimer: 0,
     comboPopups: [],
