@@ -288,6 +288,33 @@ export function createBrick(
   };
 }
 
+// Deterministic power shot curve on top wall bounce, keyed off ball position
+// (prevents an infinite straight-up loop; player can predict the direction)
+export function computePowerShotCurve(ballX: number, canvasWidth: number): number {
+  return ballX < canvasWidth / 2 ? POWER_SHOT.curveStrength : -POWER_SHOT.curveStrength;
+}
+
+// Block-hit SE pitch: higher = closer to breaking (hp3→low, hp2→mid, hp1→high)
+export function pitchForHp(hp: number): number {
+  const hitRates: Record<number, number> = { 3: 0.85, 2: 1.0, 1: 1.2 };
+  return hitRates[hp] ?? 1.0;
+}
+
+// Block-break SE pitch: rises with combo (combo 5+ uses a dedicated MAX sound instead)
+export function pitchForCombo(combo: number): number {
+  const comboRates = [1.0, 1.08, 1.17, 1.26];
+  return comboRates[combo - 1] ?? 1.0;
+}
+
+export function computeScore(
+  combo: number,
+  scoreMultiplier: number,
+  comboMultiplier: number,
+): number {
+  const baseScore = 10 * combo;
+  return Math.floor(baseScore * scoreMultiplier * comboMultiplier);
+}
+
 // ==================== Game Engine Class ====================
 
 export interface BreakoutGameOptions {
@@ -1040,9 +1067,7 @@ export class BreakoutGame {
       // End power shot on top wall + apply deterministic curve to prevent infinite loop
       if (ball.isPowerShot) {
         ball.isPowerShot = false;
-        // Curve direction based on ball position (deterministic, player can predict!)
-        ball.dx =
-          ball.x < this.canvasWidth / 2 ? POWER_SHOT.curveStrength : -POWER_SHOT.curveStrength;
+        ball.dx = computePowerShotCurve(ball.x, this.canvasWidth);
       }
     }
     if (wallHit === 'bottom') {
@@ -1127,9 +1152,7 @@ export class BreakoutGame {
     if (b.hp <= 0) this.handleBrickDestruction(b);
     else {
       b.flashTimer = BRICK_FLASH_LIFE;
-      // Higher pitch = closer to breaking: hp3→low, hp2→mid, hp1→high
-      const hitRates: Record<number, number> = { 3: 0.85, 2: 1.0, 1: 1.2 };
-      this.audio.playSE('blockHit', hitRates[b.hp] ?? 1.0);
+      this.audio.playSE('blockHit', pitchForHp(b.hp));
     }
   }
 
@@ -1168,17 +1191,14 @@ export class BreakoutGame {
         life: COMBO_POPUP_LIFE,
       });
     }
-    const baseScore = 10 * this.combo;
     const { scoreMultiplier, comboMultiplier } = this.preset;
-    this._score += Math.floor(baseScore * scoreMultiplier * comboMultiplier);
+    this._score += computeScore(this.combo, scoreMultiplier, comboMultiplier);
     this.spawnParticle(b.x + b.width / 2, b.y + b.height / 2, '#ffd700');
     this._lives = Math.min(this._lives + this.preset.healAmount, this._maxLives);
-    // Combo-scaled block break SE: pitch rises with combo, MAX at 5+
     if (this.combo >= 5) {
       this.audio.playSE('blockBreakMax');
     } else {
-      const comboRates = [1.0, 1.08, 1.17, 1.26];
-      this.audio.playSE('blockBreak', comboRates[this.combo - 1] ?? 1.0);
+      this.audio.playSE('blockBreak', pitchForCombo(this.combo));
     }
     if (this.combo >= 5 && this.combo % 5 === 0) this.showMascotComment('combo');
     else if (Math.random() < 0.15) this.showMascotComment('destroy');

@@ -6,7 +6,11 @@ import {
   calculatePaddleReflection,
   checkBallWallCollision,
   circleRectCollision,
+  computePowerShotCurve,
+  computeScore,
   createBrick,
+  pitchForCombo,
+  pitchForHp,
   resolveBrickCollision,
   volumeFromSliderX,
 } from './game';
@@ -63,6 +67,59 @@ describe('resolveBrickCollision', () => {
     );
     expect(result.dy).toBe(-2);
     expect(result.dx).toBe(1);
+  });
+});
+
+describe('computePowerShotCurve', () => {
+  it('curves right when the ball is left of center', () => {
+    expect(computePowerShotCurve(100, 320)).toBe(0.8);
+  });
+
+  it('curves left when the ball is right of center', () => {
+    expect(computePowerShotCurve(220, 320)).toBe(-0.8);
+  });
+
+  it('curves left exactly at center', () => {
+    expect(computePowerShotCurve(160, 320)).toBe(-0.8);
+  });
+});
+
+describe('pitchForHp', () => {
+  it('maps known hp values to their configured pitch', () => {
+    expect(pitchForHp(3)).toBe(0.85);
+    expect(pitchForHp(2)).toBe(1.0);
+    expect(pitchForHp(1)).toBe(1.2);
+  });
+
+  it('falls back to 1.0 for hp values outside {1,2,3}', () => {
+    expect(pitchForHp(0)).toBe(1.0);
+    expect(pitchForHp(4)).toBe(1.0);
+    expect(pitchForHp(-1)).toBe(1.0);
+  });
+});
+
+describe('pitchForCombo', () => {
+  it('maps combo 1-4 to their configured pitch', () => {
+    expect(pitchForCombo(1)).toBe(1.0);
+    expect(pitchForCombo(2)).toBe(1.08);
+    expect(pitchForCombo(3)).toBe(1.17);
+    expect(pitchForCombo(4)).toBe(1.26);
+  });
+
+  it('falls back to 1.0 for combo 0 and combo above 4', () => {
+    expect(pitchForCombo(0)).toBe(1.0);
+    expect(pitchForCombo(5)).toBe(1.0);
+  });
+});
+
+describe('computeScore', () => {
+  it('multiplies base score (10 * combo) by both multipliers and floors the result', () => {
+    expect(computeScore(1, 1, 1)).toBe(10);
+    expect(computeScore(3, 2.3, 1.1)).toBe(Math.floor(30 * 2.3 * 1.1));
+  });
+
+  it('is zero when combo is zero', () => {
+    expect(computeScore(0, 2.3, 1.1)).toBe(0);
   });
 });
 
