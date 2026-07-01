@@ -69,8 +69,6 @@ export interface RenderContext {
   dangerLevel: number;
   muted: boolean;
   seVolume: number; // 0–100, shown by the ready-screen slider
-  trackTitleText: string | null;
-  trackTitleTimer: number;
   levelUpText: string | null;
   levelUpTimer: number; // counts down from LEVEL_UP_DURATION; <=0 means hidden
   comboPopups: ComboPopup[];
@@ -126,7 +124,6 @@ export function render(rctx: RenderContext): void {
   }
 
   drawLevelUpNotice(rctx);
-  drawTrackTitle(rctx);
   drawMuteButton(rctx);
   ctx.restore();
 }
@@ -186,66 +183,6 @@ function drawLevelUpNotice(rctx: RenderContext): void {
     ctx.fillText('\u2191', arrowBaseX2, arrowY - i * 5);
   }
 
-  ctx.restore();
-}
-
-// ==================== Track Title Overlay ====================
-
-// Animation constants: total 150 frames (~2.5 s at 60 fps)
-// Phase 1 (150→30): fade in over 20 frames then hold, show "NOW PLAYING" label
-// Phase 2 (30→0):  lerp position/size from centre to bottom-right badge
-// Phase 3 (≤0):    permanent small badge in bottom-right
-export const TRACK_TITLE_DURATION = 150;
-const TRACK_TITLE_FADEOUT_WINDOW = 30;
-const TRACK_TITLE_FADEIN_FRAMES = 20;
-const TRACK_TITLE_MIN_ALPHA = 0.2;
-const TRACK_TITLE_BADGE_ALPHA = 0.45;
-
-function drawTrackTitle(rctx: RenderContext): void {
-  const { ctx, canvasWidth, canvasHeight, trackTitleText, trackTitleTimer } = rctx;
-  if (!trackTitleText) return;
-
-  const cx = canvasWidth / 2;
-  const cy = canvasHeight / 2;
-  // Badge destination
-  const bx = canvasWidth - 10;
-  const by = canvasHeight - 22;
-
-  ctx.save();
-  if (trackTitleTimer > TRACK_TITLE_FADEOUT_WINDOW) {
-    // Phase 1: fade in then hold at centre
-    const alpha = Math.min(
-      1,
-      (TRACK_TITLE_DURATION - trackTitleTimer) / TRACK_TITLE_FADEIN_FRAMES + TRACK_TITLE_MIN_ALPHA,
-    );
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#aaaacc';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('NOW PLAYING', cx, cy - 46);
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('\u266a ' + trackTitleText, cx, cy - 30);
-  } else if (trackTitleTimer > 0) {
-    // Phase 2: lerp centre → badge (t: 1→0)
-    const t = trackTitleTimer / TRACK_TITLE_FADEOUT_WINDOW;
-    const x = bx + (cx - bx) * t;
-    const y = by + (cy - 30 - by) * t;
-    const fontSize = Math.round(8 + 10 * t); // 18px → 8px
-    ctx.globalAlpha = TRACK_TITLE_BADGE_ALPHA + (1 - TRACK_TITLE_BADGE_ALPHA) * t;
-    ctx.fillStyle = '#ffd700';
-    ctx.font = `bold ${String(fontSize)}px monospace`;
-    ctx.textAlign = t >= 0.5 ? 'center' : 'right';
-    ctx.fillText('\u266a ' + trackTitleText, x, y);
-  } else {
-    // Phase 3: static badge in bottom-right
-    ctx.globalAlpha = TRACK_TITLE_BADGE_ALPHA;
-    ctx.fillStyle = '#ffd700';
-    ctx.font = '8px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText('\u266a ' + trackTitleText, bx, by);
-  }
   ctx.restore();
 }
 
