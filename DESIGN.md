@@ -23,6 +23,16 @@ src/
 
 Each layer has a single responsibility and exposes a small API to the layers above it. `main.ts` wires the layers together; nothing else depends on `main.ts`.
 
+## State Ownership
+
+Layered Architecture names module responsibility; this section names the orthogonal axis — how a given piece of state is expected to behave, and where that decides it should live. Three shapes recur:
+
+1. **Per-frame simulation state stays mutable, in the imperative shell.** Ball/paddle position, bricks, bullets, particles, score, combo — anything touched every tick — lives as plain mutable objects/arrays owned by `core/game.ts`. It is not restructured into immutable per-frame snapshots; the frame budget (16 ms, see [Performance Budget](#performance-budget)) doesn't leave room for that allocation churn. This is the "imperative shell."
+2. **Pure input→output calculations are extracted as standalone functions.** Collision resolution, damage/score math, and coordinate transforms don't need the shell's mutable state to run — they take values in, return a value out. Pulling them out as module-scope `export function`s makes them unit-testable without a canvas or audio context, and documents intent with a name instead of an inline expression. `checkBallWallCollision` / `resolveBrickCollision` and the later `computeScore` / `pitchForHp` / `pitchForCombo` / `computePowerShotCurve` are the worked examples — new arithmetic that doesn't need shell state should follow the same pattern rather than staying inline in a method.
+3. **Low-frequency, event-driven settings own themselves end-to-end, and callers pull.** Mute, SE volume, and similar settings aren't touched every frame; they change on a user action and get read back occasionally. `BreakoutAudioManager` (`src/audio/`) owns this shape already: `localStorage` persistence and the mutation methods (`setMuted`, `setSEVolume`, `toggleMute`) live inside the class, and `core/game.ts` only calls the getters (`isMuted()`, `getSEVolume()`) once per frame to read the current value into the render context. New settings (a future difficulty or language preference that needs persistence) should follow this pull-based, self-owned-module shape rather than being threaded through `Game` as loose fields.
+
+What this repo deliberately does **not** reach for: a reactive push-based store (subscribe/notify, à la nanostores). That shape earns its cost only once a piece of state has multiple independent subscribers that need to react to the same change; today every consumer of settings state is a single per-frame pull site. Introduce a subscribe-based store when a second, genuinely independent subscriber shows up — not ahead of that need, and not as a general replacement for shape 1 or 2 above.
+
 ## Runtime Configuration
 
 Users tune the game by editing `config.js`, which is loaded via a `<script>` tag in `index.html` before the bundle. The file is plain JavaScript (not a build artifact) so that editing it does not require Node or a rebuild.
