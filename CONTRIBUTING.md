@@ -24,6 +24,16 @@ npm run build
 
 CI runs the same steps. All must pass before a PR can merge.
 
+### Running the Playwright smoke test locally
+
+The smoke test drives a real browser and isn't part of `npm run test`
+(that's Vitest's unit-test suite). One-time setup, then run it directly:
+
+```sh
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
 ## Issues drive changes
 
 This repo uses a lightweight, **issue-driven** GitHub flow — plain GitHub Flow

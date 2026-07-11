@@ -153,3 +153,7 @@ vite.config.ts.timestamp-*
 
 # Private, machine-local project context for AI assistants (never committed)
 CLAUDE.local.md
+
+# Playwright
+playwright-report/
+test-results/
