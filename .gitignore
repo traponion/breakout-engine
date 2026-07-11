@@ -148,5 +148,8 @@ vite.config.ts.timestamp-*
 # Local AI working directory (private plans, agent scratch — not part of the repo)
 .claude/
 
+# Git worktrees used for isolated AI-assisted implementation work
+.worktrees/
+
 # Private, machine-local project context for AI assistants (never committed)
 CLAUDE.local.md
