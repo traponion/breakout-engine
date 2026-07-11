@@ -148,6 +148,10 @@ vite.config.ts.timestamp-*
 # Local AI working directory (private plans, agent scratch — not part of the repo)
 .claude/
 
+# superpowers skill output (spec/plan working docs — agent scratch, same
+# rationale as .claude/ above; issue + PR description are the durable record)
+docs/superpowers/
+
 # Git worktrees used for isolated AI-assisted implementation work
 .worktrees/
 
