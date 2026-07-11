@@ -131,7 +131,7 @@ test('boots, renders the ready screen, and starts without console errors', async
 });
 ```
 
-- [ ] **Step 5: Add `e2e/**/\*`to`tsconfig.json`'s `include`\*\*
+- [ ] **Step 5: Add the `e2e` directory to `tsconfig.json`'s `include` list**
 
 In `tsconfig.json`, change:
 
